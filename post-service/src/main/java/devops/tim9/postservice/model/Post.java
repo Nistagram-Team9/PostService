@@ -3,12 +3,7 @@ package devops.tim9.postservice.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
-import javax.persistence.OneToMany;
+import javax.persistence.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -35,19 +30,33 @@ public class Post {
 	private User user;
 
 	@ManyToMany(mappedBy = "likedPosts")
-	private List<User> likedBy = new ArrayList<>();
+	private List<User> likedBy;
 
 	@ManyToMany(mappedBy = "dislikedPosts")
-	private List<User> dislikedBy = new ArrayList<>();;
-
-	@ManyToMany(mappedBy = "savedPosts")
-	private List<User> savedBy = new ArrayList<>();;
-
-	@OneToMany
-	private List<Comment> postComments = new ArrayList<>();
+	private List<User> dislikedBy;
 
 	@JsonIgnore
 	@ManyToMany
+	@JoinTable(name = "saved_post_user", 
+	  joinColumns = @JoinColumn(name = "post_id"), 
+	  inverseJoinColumns = @JoinColumn(name = "user_id"))
+	private List<User> savedBy;
+	
+	@JsonIgnore
+	@ManyToMany
+	@JoinTable(name = "reported_post_user", 
+	  joinColumns = @JoinColumn(name = "post_id"), 
+	  inverseJoinColumns = @JoinColumn(name = "user_id"))
+	private List<User> reportedBy;
+
+	@OneToMany
+	private List<Comment> postComments;
+
+	@JsonIgnore
+	@ManyToMany
+	@JoinTable(name = "post_tags", 
+	  joinColumns = @JoinColumn(name = "post_id"), 
+	  inverseJoinColumns = @JoinColumn(name = "tag_id"))
 	private List<Tag> tags = new ArrayList<>();
 
 }
