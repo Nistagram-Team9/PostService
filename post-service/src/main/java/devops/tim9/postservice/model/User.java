@@ -1,7 +1,6 @@
 package devops.tim9.postservice.model;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import javax.persistence.CascadeType;
@@ -14,7 +13,6 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.OneToMany;
 
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -49,9 +47,9 @@ public class User implements UserDetails{
 	private Boolean isActive;
 	private String password;
 	
+	@JsonIgnore
 	@ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
 	@JoinTable(name = "user_authority", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"), inverseJoinColumns = @JoinColumn(name = "authority_id", referencedColumnName = "id"))
-	@JsonIgnore
 	private List<Authority> authorities = new ArrayList<>();
 	
 	@OneToMany
@@ -59,15 +57,25 @@ public class User implements UserDetails{
 	
 	@JsonIgnore
 	@ManyToMany
+	@JoinTable(name = "liked_user_post", 
+	  joinColumns = @JoinColumn(name = "user_id"), 
+	  inverseJoinColumns = @JoinColumn(name = "post_id"))
 	private List<Post> likedPosts;
 	
 	@JsonIgnore
 	@ManyToMany
+	@JoinTable(name = "disliked_user_post", 
+	  joinColumns = @JoinColumn(name = "user_id"), 
+	  inverseJoinColumns = @JoinColumn(name = "post_id"))
 	private List<Post> dislikedPosts;
 	
 	@JsonIgnore
-	@ManyToMany
+	@ManyToMany(mappedBy="savedBy")
 	private List<Post> savedPosts;
+	
+	@JsonIgnore
+	@ManyToMany(mappedBy="reportedBy")
+	private List<Post> reportedPosts;
 	
 	@OneToMany
 	private List<Comment> usersComments;
@@ -92,13 +100,10 @@ public class User implements UserDetails{
 	
 	
 	@Override
-	public Collection<? extends GrantedAuthority> getAuthorities() {
+	public List<Authority> getAuthorities() {
 		return this.authorities;
 	}
 
-	public List<Authority> getAuthoitiesList(){
-		return  authorities;
-	}
 	@JsonIgnore
 	@Override
 	public boolean isAccountNonExpired() {

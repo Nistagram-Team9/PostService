@@ -86,7 +86,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 		int expiresIn = tokenHelper.getExpiredIn();
 		Role role = null;
-		if (user.getAuthoitiesList().get(0).getRole().equals(Role.ROLE_ADMIN)) {
+		if (user.getAuthorities().get(0).getRole().equals(Role.ROLE_ADMIN)) {
 			role = Role.ROLE_ADMIN;
 		} else {
 			role = Role.ROLE_USER;
@@ -114,6 +114,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
 	@KafkaListener(topics = {"login-events"})
 	public void onMessage(ConsumerRecord<Integer, String> consumerRecord) {
+		System.out.println("Consumer record accepted: " + consumerRecord);
+		System.out.println(consumerRecord);
 		
 		String value = consumerRecord.value();
 		try {
@@ -122,14 +124,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 			try {
 				this.login(request);
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		} catch (JsonMappingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}	
 
