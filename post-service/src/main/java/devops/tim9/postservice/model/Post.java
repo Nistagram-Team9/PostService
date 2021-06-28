@@ -1,9 +1,15 @@
 package devops.tim9.postservice.model;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
+import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -49,14 +55,10 @@ public class Post {
 	  inverseJoinColumns = @JoinColumn(name = "user_id"))
 	private List<User> reportedBy;
 
-	@OneToMany
+	@OneToMany(mappedBy="post")
 	private List<Comment> postComments;
 
-	@JsonIgnore
-	@ManyToMany
-	@JoinTable(name = "post_tags", 
-	  joinColumns = @JoinColumn(name = "post_id"), 
-	  inverseJoinColumns = @JoinColumn(name = "tag_id"))
-	private List<Tag> tags = new ArrayList<>();
+	@ManyToMany(mappedBy="taggedInPost")
+	private List<User> taggedUsers;
 
 }

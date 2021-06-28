@@ -42,11 +42,6 @@ public class PostController {
 		return new ResponseEntity<>(new MessageDto("Success", "Post is successfully created."), HttpStatus.CREATED);
 	}
 	
-	@GetMapping(value = "/{tag}")
-	public ResponseEntity<List<Post>> findByTag(@PathVariable String tag) {
-		return new ResponseEntity<>(postService.findByTag(tag), HttpStatus.OK);
-	}
-	
 	@PostMapping(value = "/like/{id}")
 	public ResponseEntity<MessageDto> likePost(@PathVariable Integer id) {
 		postService.likePost(id);
@@ -64,6 +59,44 @@ public class PostController {
 		postService.reportPost(id);
 		return new ResponseEntity<>(new MessageDto("Success", "Post is successfully reported."), HttpStatus.OK);
 	}
+	
+	@PostMapping(value="/comment/{id}")
+	public ResponseEntity<MessageDto> commentPost(@PathVariable Integer id, @RequestParam String content, @RequestParam List<String> usernames) {
+		postService.commentPost(id,content, usernames);
+		return new ResponseEntity<>(new MessageDto("Success", "Comment is successfuly made."), HttpStatus.OK);
+	}
+	
+	@GetMapping(value="/view/{username}")
+	public ResponseEntity<List<Post>> viewUsersPosts(@PathVariable String username){
+		return new ResponseEntity<>(postService.viewUsersPosts(username), HttpStatus.OK);
+		
+	}
+	
+	@PostMapping(value="/save/{id}")
+	public ResponseEntity<MessageDto> savePost(@PathVariable Integer id){
+		postService.savePost(id);
+		return new ResponseEntity<>(new MessageDto("Success", "Post is successfully saved."), HttpStatus.OK);
+		
+	}
+	
+	@GetMapping(value="/liked/{username}")
+	public ResponseEntity<List<Post>> likedByUser(@PathVariable String username){
+		return new ResponseEntity<>(postService.likedByUser(username), HttpStatus.OK);
+		
+	}
+	
+	@GetMapping(value="/disliked/{username}")
+	public ResponseEntity<List<Post>> dislikedByUser(@PathVariable String username){
+		return new ResponseEntity<>(postService.dislikedByUser(username), HttpStatus.OK);
+		
+	}
+	
+	@GetMapping(value="/search/{username}")
+	public ResponseEntity<List<Post>> searchByTag(@PathVariable String username){
+		return new ResponseEntity<>(postService.searchByTag(username), HttpStatus.OK);
+	}
+	
+	
 	
 
 }
