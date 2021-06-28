@@ -9,11 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import devops.tim9.postservice.exception.ImageStorageException;
+import devops.tim9.postservice.model.Comment;
 import devops.tim9.postservice.model.Post;
-import devops.tim9.postservice.model.Tag;
 import devops.tim9.postservice.model.User;
+import devops.tim9.postservice.repository.CommentRepository;
 import devops.tim9.postservice.repository.PostRepository;
-import devops.tim9.postservice.repository.TagRepository;
 import devops.tim9.postservice.repository.UserRepository;
 
 @Service
@@ -21,30 +21,29 @@ public class PostService {
 
 	private final UserRepository userRepository;
 	private final PostRepository postRepository;
-	private final TagRepository tagRepository;
 	private final ImageStorageService imageStorageService;
+	private final CommentRepository commentRepository;
 
-	public PostService(UserRepository userRepository, PostRepository postRepository, TagRepository tagRepository,
-			ImageStorageService imageStorageService) {
+	public PostService(UserRepository userRepository, PostRepository postRepository,
+			ImageStorageService imageStorageService, CommentRepository commentRepository) {
 		this.userRepository = userRepository;
 		this.postRepository = postRepository;
-		this.tagRepository = tagRepository;
 		this.imageStorageService = imageStorageService;
+		this.commentRepository = commentRepository;
 	}
 
-	public Post createPost(String description, List<String> tags, MultipartFile file) throws ImageStorageException {
+	public Post createPost(String description, List<String> taggedUsernames, MultipartFile file)
+			throws ImageStorageException {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-		Post post = new Post(null, description, null, user, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
-		if (tags.size() > 0) {
-			for (String tag : tags) {
-				if (!tagRepository.existsByName(tag)) {
-					Tag tag2 = tagRepository.save(new Tag(null, tag, new ArrayList<>()));
-					post.getTags().add(tag2);
-				} else {
-					Tag tag2 = tagRepository.findByName(tag);
-					post.getTags().add(tag2);
+		Post post = postRepository.save(new Post(null, description, null, user, new ArrayList<>(), new ArrayList<>(),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+		if (taggedUsernames.size() > 0) {
+			for (String username : taggedUsernames) {
+				User user2 = userRepository.findByUsername(username);
+				if (user2 != null && user2.getCanBeTagged()) {
+					user2.getTaggedInPost().add(post);
+					userRepository.save(user2);
 				}
 			}
 		}
@@ -53,21 +52,13 @@ public class PostService {
 		return postRepository.save(post);
 	}
 
-	public List<Post> findByTag(String tag) {
-		if (tagRepository.existsByName(tag)) {
-			Tag tag2 = tagRepository.findByName(tag);
-			return tag2.getPosts();
-		}
-		return new ArrayList<>();
-	}
-
 	public void likePost(Integer id) {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		Optional<Post> optionalPost = postRepository.findById(id);
 		if (optionalPost.isPresent()) {
 			Post post = optionalPost.get();
-			if(user.getDislikedPosts().contains(post)) {
+			if (user.getDislikedPosts().contains(post)) {
 				user.getDislikedPosts().remove(post);
 			}
 			user.getLikedPosts().add(post);
@@ -75,14 +66,14 @@ public class PostService {
 		}
 
 	}
-	
+
 	public void dislikePost(Integer id) {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		Optional<Post> optionalPost = postRepository.findById(id);
 		if (optionalPost.isPresent()) {
 			Post post = optionalPost.get();
-			if(user.getLikedPosts().contains(post)) {
+			if (user.getLikedPosts().contains(post)) {
 				user.getLikedPosts().remove(post);
 			}
 			user.getDislikedPosts().add(post);
@@ -90,7 +81,7 @@ public class PostService {
 		}
 
 	}
-	
+
 	public void reportPost(Integer id) {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
@@ -102,5 +93,70 @@ public class PostService {
 		}
 
 	}
+
+	public void commentPost(Integer id, String content, List<String> usernames) {
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		Optional<Post> optionalPost = postRepository.findById(id);
+		if (optionalPost.isPresent()) {
+			Post post = optionalPost.get();
+			Comment comment = commentRepository.save(new Comment(null, user, post, content, new ArrayList<>()));
+			for (String username : usernames) {
+				User user2 = userRepository.findByUsername(username);
+				if (user2 != null && user2.getCanBeTagged()) {
+					user2.getTaggedInComment().add(comment);
+					userRepository.save(user2);
+				}
+			}
+			user.getUsersComments().add(comment);
+			userRepository.save(user);
+			postRepository.save(post);
+		}
+
+	}
+
+	public List<Post> viewUsersPosts(String username) {
+		User user = userRepository.findByUsername(username);
+		if (user != null) {
+			return postRepository.findByUser(user);
+		}
+		return new ArrayList<>();
+	}
+	
+	public void savePost(Integer id) {
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		Optional<Post> optionalPost = postRepository.findById(id);
+		if (optionalPost.isPresent()) {
+			Post post = optionalPost.get();
+			post.getSavedBy().add(user);
+			postRepository.save(post);
+		}
+	}
+	
+	public List<Post> likedByUser(String username){
+		User user = userRepository.findByUsername(username);
+		if (user != null) {
+			return user.getLikedPosts();
+		}
+		return new ArrayList<>();
+	}
+	
+	public List<Post> dislikedByUser(String username){
+		User user = userRepository.findByUsername(username);
+		if (user != null) {
+			return user.getDislikedPosts();
+		}
+		return new ArrayList<>();
+	}
+	
+	public List<Post> searchByTag(String username){
+		User user = userRepository.findByUsername(username);
+		if (user != null) {
+			return postRepository.findByTagged(user.getId());
+		}
+		return new ArrayList<>();	
+	}
+	
 
 }

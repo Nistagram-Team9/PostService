@@ -77,8 +77,23 @@ public class User implements UserDetails{
 	@ManyToMany(mappedBy="reportedBy")
 	private List<Post> reportedPosts;
 	
+	@JsonIgnore
 	@OneToMany
 	private List<Comment> usersComments;
+	
+	@JsonIgnore
+	@ManyToMany
+	@JoinTable(name = "user_tag_post", 
+	joinColumns = @JoinColumn(name = "user_id"), 
+	inverseJoinColumns = @JoinColumn(name = "post_id"))
+	private List<Post> taggedInPost;
+	
+	@JsonIgnore
+	@ManyToMany
+	@JoinTable(name = "user_tag_comment", 
+	joinColumns = @JoinColumn(name = "user_id"), 
+	inverseJoinColumns = @JoinColumn(name = "comment_id"))
+	private List<Comment> taggedInComment;
 	
 	
 	
