@@ -14,5 +14,8 @@ public interface PostRepository extends JpaRepository<Post, Integer> {
 	
 	@Query(value = "SELECT * FROM post LEFT JOIN user_tag_post ON user_tag_post.post_id = post.id WHERE user_tag_post.user_id = ?1", nativeQuery = true)
 	List<Post> findByTagged(Integer id);
+	
+	@Query(value = "SELECT * FROM post LEFT JOIN reported_post_user ON reported_post_user.post_id = post.id", nativeQuery = true)
+	List<Post> findByReported();
 
 }

@@ -46,6 +46,7 @@ public class User implements UserDetails{
 	private Boolean canBeTagged;
 	private Boolean isActive;
 	private String password;
+	private Boolean isAccepted;
 	
 	@JsonIgnore
 	@ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
