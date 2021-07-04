@@ -2,6 +2,7 @@ package devops.tim9.postservice.model;
 
 import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
@@ -35,10 +36,10 @@ public class Post {
 	@ManyToOne
 	private User user;
 
-	@ManyToMany(mappedBy = "likedPosts")
+	@ManyToMany(mappedBy = "likedPosts", cascade=CascadeType.REMOVE)
 	private List<User> likedBy;
 
-	@ManyToMany(mappedBy = "dislikedPosts")
+	@ManyToMany(mappedBy = "dislikedPosts", cascade=CascadeType.REMOVE)
 	private List<User> dislikedBy;
 
 	@JsonIgnore
@@ -55,10 +56,10 @@ public class Post {
 	  inverseJoinColumns = @JoinColumn(name = "user_id"))
 	private List<User> reportedBy;
 
-	@OneToMany(mappedBy="post")
+	@OneToMany(mappedBy="post",cascade=CascadeType.REMOVE)
 	private List<Comment> postComments;
 
-	@ManyToMany(mappedBy="taggedInPost")
+	@ManyToMany(mappedBy="taggedInPost",cascade=CascadeType.REMOVE)
 	private List<User> taggedUsers;
 
 }
