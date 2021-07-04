@@ -15,6 +15,9 @@ public interface UserRepository extends JpaRepository<User, Integer> {
 	User findByToken(String token);
 	
 	List<User> findByIsAccepted(Boolean isAccepted);
+	
+	@Query(value = "SELECT * FROM user LEFT JOIN user_followers ON user_followers.user_id = user.id where followers_id = ?1", nativeQuery = true)
+	List<User> getFollowing(Integer id);
 
 
 }
