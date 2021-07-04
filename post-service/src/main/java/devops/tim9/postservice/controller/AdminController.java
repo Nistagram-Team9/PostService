@@ -20,7 +20,7 @@ import devops.tim9.postservice.service.PostService;
 
 @RestController
 @RequestMapping(value = "/admin", produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*")
+@CrossOrigin(origins = "http://localhost:4200")
 public class AdminController {
 	
 	private PostService postService;
@@ -51,6 +51,7 @@ public class AdminController {
 	
 	@PostMapping(value="/disable/{username}")
 	public ResponseEntity<MessageDto> disableAccount(@PathVariable String username){
+		System.out.println("Disabling user");
 		postService.disableAccount(username);
 		return new ResponseEntity<>(new MessageDto("Success", "Account is successfuly disabled."), HttpStatus.OK);
 	}

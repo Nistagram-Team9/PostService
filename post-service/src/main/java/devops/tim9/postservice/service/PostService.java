@@ -186,10 +186,10 @@ public class PostService {
 	
 	public List<Post> searchByTag(String username){
 		User user = userRepository.findByUsername(username);
-		if (user != null) {
-			return postRepository.findByTagged(user.getId());
-		}
-		return new ArrayList<>();	
+		return user.getPosts();
+//		if (user != null) {
+//			return postRepository.findByTagged(user.getId());
+//		}
 	}
 	
 	public List<Post> getReportedPosts(){
