@@ -1,7 +1,12 @@
 package devops.tim9.postservice.controller;
 
+import java.io.IOException;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,22 +22,27 @@ import org.springframework.web.multipart.MultipartFile;
 import devops.tim9.postservice.dto.MessageDto;
 import devops.tim9.postservice.exception.ImageStorageException;
 import devops.tim9.postservice.model.Post;
+import devops.tim9.postservice.service.ImageStorageService;
 import devops.tim9.postservice.service.PostService;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping(value = "/posts", produces = MediaType.APPLICATION_JSON_VALUE)
-@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*")
 public class PostController {
 	
 	private PostService postService;
+	private ImageStorageService imageStorageService;
 
-	public PostController(PostService postService) {
+	public PostController(PostService postService, ImageStorageService imageStorageService) {
 		this.postService = postService;
+		this.imageStorageService = imageStorageService;
 	}
 	
 	
 	@PostMapping
 	public ResponseEntity<MessageDto> createPost(@RequestParam String description, @RequestParam List<String> tags, @RequestParam MultipartFile file) {
+		System.out.println("Creating post");
+		System.out.println(description);
 		try {
 			postService.createPost(description, tags, file);
 		} catch (ImageStorageException e) {
@@ -41,6 +51,28 @@ public class PostController {
 		}
 		return new ResponseEntity<>(new MessageDto("Success", "Post is successfully created."), HttpStatus.CREATED);
 	}
+	@GetMapping("/download-image/{id}")
+    public ResponseEntity<Resource> downloadImage(@PathVariable Integer id, HttpServletRequest request) {
+		System.out.println("Uslo u download image");
+        Post post = postService.getOne(id);
+        if (post.getPicture() == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        Resource resource = imageStorageService.loadResource(post.getPicture());
+        String contentType = null;
+        try {
+            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+        } catch (IOException ex) {
+            System.out.println("Could not determine file type.");
+        }
+        if(contentType == null) {
+            contentType = "application/octet-stream";
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                .body(resource);
+    }
 	
 	@PostMapping(value = "/like/{id}")
 	public ResponseEntity<MessageDto> likePost(@PathVariable Integer id) {
@@ -60,10 +92,16 @@ public class PostController {
 		return new ResponseEntity<>(new MessageDto("Success", "Post is successfully reported."), HttpStatus.OK);
 	}
 	
-	@PostMapping(value="/comment/{id}")
-	public ResponseEntity<MessageDto> commentPost(@PathVariable Integer id, @RequestParam String content, @RequestParam List<String> usernames) {
-		postService.commentPost(id,content, usernames);
+	@PostMapping(value="/comment/{id}/{content}")
+	public ResponseEntity<MessageDto> commentPost(@PathVariable Integer id, @PathVariable String content) {
+		postService.commentPost(id,content);
 		return new ResponseEntity<>(new MessageDto("Success", "Comment is successfuly made."), HttpStatus.OK);
+	}
+	
+	@GetMapping(value="/view-my-posts")
+	public ResponseEntity<List<Post>> viewMyPosts(){
+		return new ResponseEntity<>(postService.viewMyPosts(), HttpStatus.OK);
+		
 	}
 	
 	@GetMapping(value="/view/{username}")
@@ -79,15 +117,15 @@ public class PostController {
 		
 	}
 	
-	@GetMapping(value="/liked/{username}")
-	public ResponseEntity<List<Post>> likedByUser(@PathVariable String username){
-		return new ResponseEntity<>(postService.likedByUser(username), HttpStatus.OK);
+	@GetMapping(value="/liked")
+	public ResponseEntity<List<Post>> likedByUser(){
+		return new ResponseEntity<>(postService.likedByUser(), HttpStatus.OK);
 		
 	}
 	
-	@GetMapping(value="/disliked/{username}")
-	public ResponseEntity<List<Post>> dislikedByUser(@PathVariable String username){
-		return new ResponseEntity<>(postService.dislikedByUser(username), HttpStatus.OK);
+	@GetMapping(value="/disliked")
+	public ResponseEntity<List<Post>> dislikedByUser(){
+		return new ResponseEntity<>(postService.dislikedByUser(), HttpStatus.OK);
 		
 	}
 	
