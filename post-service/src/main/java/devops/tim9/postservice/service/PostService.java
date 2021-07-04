@@ -51,6 +51,10 @@ public class PostService {
 		post.setPicture(savedImagePath);
 		return postRepository.save(post);
 	}
+	
+	public Post getOne(Integer id) {
+		return postRepository.getOne(id);
+	}
 
 	public void likePost(Integer id) {
 		User user = (User) userRepository
@@ -94,29 +98,46 @@ public class PostService {
 
 	}
 
-	public void commentPost(Integer id, String content, List<String> usernames) {
+	public void commentPost(Integer id, String content) {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		Optional<Post> optionalPost = postRepository.findById(id);
-		if (optionalPost.isPresent()) {
-			Post post = optionalPost.get();
-			Comment comment = commentRepository.save(new Comment(null, user, post, content, new ArrayList<>()));
-			for (String username : usernames) {
-				User user2 = userRepository.findByUsername(username);
-				if (user2 != null && user2.getCanBeTagged()) {
-					user2.getTaggedInComment().add(comment);
-					userRepository.save(user2);
-				}
-			}
-			user.getUsersComments().add(comment);
-			userRepository.save(user);
-			postRepository.save(post);
-		}
+//		if (optionalPost.isPresent()) {
+//			Post post = optionalPost.get();
+//			Comment comment = commentRepository.save(new Comment(null, user, post, content, new ArrayList<>()));
+//			for (String username : usernames) {
+//				User user2 = userRepository.findByUsername(username);
+//				if (user2 != null && user2.getCanBeTagged()) {
+//					user2.getTaggedInComment().add(comment);
+//					userRepository.save(user2);
+//				}
+//			}
+//			user.getUsersComments().add(comment);
+//			userRepository.save(user);
+//			postRepository.save(post);
+//		}
+		
+		Post post = postRepository.findById(id).get();
+		Comment comment = commentRepository.save(new Comment(null, user, post, content, new ArrayList<>()));
+		post.getPostComments().add(comment);
+		userRepository.save(user);
+		postRepository.save(post);
+		commentRepository.save(comment);
+		
 
 	}
 
 	public List<Post> viewUsersPosts(String username) {
 		User user = userRepository.findByUsername(username);
+		if (user != null) {
+			return postRepository.findByUser(user);
+		}
+		return new ArrayList<>();
+	}
+	
+	public List<Post> viewMyPosts() {
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		if (user != null) {
 			return postRepository.findByUser(user);
 		}
@@ -134,16 +155,20 @@ public class PostService {
 		}
 	}
 	
-	public List<Post> likedByUser(String username){
-		User user = userRepository.findByUsername(username);
+	public List<Post> likedByUser(){
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		Optional<Post> optionalPost = postRepository.findById(user.getId());
 		if (user != null) {
 			return user.getLikedPosts();
 		}
 		return new ArrayList<>();
 	}
 	
-	public List<Post> dislikedByUser(String username){
-		User user = userRepository.findByUsername(username);
+	public List<Post> dislikedByUser(){
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		Optional<Post> optionalPost = postRepository.findById(user.getId());
 		if (user != null) {
 			return user.getDislikedPosts();
 		}
