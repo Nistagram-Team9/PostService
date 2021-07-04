@@ -134,6 +134,12 @@ public class PostController {
 		return new ResponseEntity<>(postService.searchByTag(username), HttpStatus.OK);
 	}
 	
+	@GetMapping(value="/followers")
+	public ResponseEntity<List<Post>> getFollowersPosts(){
+		return new ResponseEntity<>(postService.getFollowingPosts(),HttpStatus.OK);
+	}
+	
+	
 	
 	
 

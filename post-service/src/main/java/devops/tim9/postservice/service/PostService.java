@@ -1,16 +1,25 @@
 package devops.tim9.postservice.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import devops.tim9.postservice.config.domain.FollowEvent;
 import devops.tim9.postservice.config.domain.AcceptAgentEvent;
 import devops.tim9.postservice.config.domain.DisableUserEvent;
 import devops.tim9.postservice.exception.ImageStorageException;
@@ -29,24 +38,26 @@ public class PostService {
 	private final PostRepository postRepository;
 	private final ImageStorageService imageStorageService;
 	private final CommentRepository commentRepository;
-	
+	private final ObjectMapper objectMapper;
+
 	@Autowired
 	AdminEventsProducer adminEventsProducer;
 
 	public PostService(UserRepository userRepository, PostRepository postRepository,
-			ImageStorageService imageStorageService, CommentRepository commentRepository) {
+			ImageStorageService imageStorageService, CommentRepository commentRepository, ObjectMapper objectMapper) {
 		this.userRepository = userRepository;
 		this.postRepository = postRepository;
 		this.imageStorageService = imageStorageService;
 		this.commentRepository = commentRepository;
+		this.objectMapper = objectMapper;
 	}
 
 	public Post createPost(String description, List<String> taggedUsernames, MultipartFile file)
 			throws ImageStorageException {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-		Post post = postRepository.save(new Post(null, description, null, user, new ArrayList<>(), new ArrayList<>(),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+		Post post = postRepository.save(new Post(null, description, null, new Date(), user, new ArrayList<>(),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
 		if (taggedUsernames.size() > 0) {
 			for (String username : taggedUsernames) {
 				User user2 = userRepository.findByUsername(username);
@@ -163,7 +174,7 @@ public class PostService {
 			postRepository.save(post);
 		}
 	}
-	
+
 	public List<Post> likedByUser(){
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
@@ -230,8 +241,42 @@ public class PostService {
 		}
 	}
 	
-	
-	
-	
+
+	public void createFollowing(FollowEvent followEvent) {
+		User userFollowed = userRepository.findByUsername(followEvent.getUsernameFollowed());
+		User userFollowing = userRepository.findByUsername(followEvent.getUsernameFollowedBy());
+		userFollowed.getFollowers().add(userFollowing);
+		userRepository.save(userFollowed);
+
+	}
+
+	@KafkaListener(topics = { "follow-events" })
+	public void onMessage(ConsumerRecord<Integer, String> consumerRecord) {
+		String value = consumerRecord.value();
+		try {
+			FollowEvent followEvent = objectMapper.readValue(value, FollowEvent.class);
+			createFollowing(followEvent);
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public List<Post> getFollowingPosts() {
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		List<Post> followersPosts = new ArrayList<>();
+		for (User u : userRepository.getFollowing(user.getId())) {
+			followersPosts.addAll(postRepository.findByUser(u));
+		}
+		Comparator<Post> comparator = Comparator.comparing(Post::getCreatedAt);
+		Collections.sort(followersPosts, comparator.reversed());
+		return followersPosts;
+
+	}
 
 }
