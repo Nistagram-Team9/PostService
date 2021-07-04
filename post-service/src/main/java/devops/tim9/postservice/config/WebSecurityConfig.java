@@ -56,6 +56,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 			.antMatchers("/auth/login").permitAll()
 			.antMatchers("/auth/registerAdmin").permitAll()
 			.antMatchers("/posts/**").permitAll()
+			.antMatchers("/admin/**").permitAll()
 			.anyRequest().authenticated().and()
 			.addFilterBefore(new TokenAuthenticationFilter(tokenHelper, userService),
 				BasicAuthenticationFilter.class);
