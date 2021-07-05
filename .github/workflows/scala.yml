@@ -4,7 +4,7 @@ on:
       - 'main'
 defaults:
   run:
-    working-directory: PostService
+    working-directory: PostService/post-service
 jobs:
   docker:
       name: Publish - Docker Hub
