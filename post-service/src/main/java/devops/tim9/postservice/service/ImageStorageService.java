@@ -1,7 +1,9 @@
 package devops.tim9.postservice.service;
 
 import java.io.FileOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,6 +13,8 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -51,36 +55,50 @@ public class ImageStorageService {
 		}
 	}
 
-	public String storeImage(MultipartFile file, String username) throws Exception{
-		final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
-		List<String> webLinks=new ArrayList<String>();
-		File item = new File();
-		Permission permission = new Permission();
-		permission.setRole("reader");
-		permission.setType("anyone");
-		List<Permission> permis = new ArrayList<Permission>();
-		File fileMetadata = new File();
-		fileMetadata.setName(file.getName());
-		java.io.File filePath = new java.io.File(file.getOriginalFilename());
-        FileOutputStream fos = new FileOutputStream( filePath );
-        fos.write( file.getBytes() );
-        fos.close();
-		if (!filePath.exists()) {
-			throw new ImageStorageException("Invalid file name!");
-		} else {
-			FileContent mediaContent = new FileContent("image/jpeg",filePath);
-			Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY,
-					DriveQuickstart.getCredentials(HTTP_TRANSPORT)).setApplicationName(APPLICATION_NAME).build();
+  public String storeImage(MultipartFile file, String username) throws Exception{
+      final NetHttpTransport HTTP_TRANSPORT = GoogleNetHttpTransport.newTrustedTransport();
+      List<String> webLinks=new ArrayList<String>();
+      File item = new File();
+      Permission permission = new Permission();
+      permission.setRole("reader");
+      permission.setType("anyone");
+      List<Permission> permis = new ArrayList<Permission>();
+      File fileMetadata = new File();
+      fileMetadata.setName(file.getName());
+      java.io.File filePath = new java.io.File(file.getOriginalFilename());
+          FileOutputStream fos = new FileOutputStream( filePath );
+          fos.write( file.getBytes() );
+          fos.close();
+      if (!filePath.exists()) {
+        throw new ImageStorageException("Invalid file name!");
+      } else {
+        FileContent mediaContent = new FileContent("image/jpeg",filePath);
+        Drive service = new Drive.Builder(HTTP_TRANSPORT, JSON_FACTORY,
+            DriveQuickstart.getCredentials(HTTP_TRANSPORT)).setApplicationName(APPLICATION_NAME).build();
 
-			item = service.files().create(fileMetadata, mediaContent).setFields("id,webViewLink").execute();
-			Permission perm = service.permissions().create(item.getId(), permission).execute();
-			permis.add(perm);
-			item.setPermissions(permis);
-			webLinks.add(item.getWebViewLink());
-			String[] els = item.getWebViewLink().split("/");
-			return els[0]+"//"+els[2]+"/"+"uc?export=view&id="+els[5];
-			
-		}
-	}
+        item = service.files().create(fileMetadata, mediaContent).setFields("id,webViewLink").execute();
+        Permission perm = service.permissions().create(item.getId(), permission).execute();
+        permis.add(perm);
+        item.setPermissions(permis);
+        webLinks.add(item.getWebViewLink());
+        String[] els = item.getWebViewLink().split("/");
+        return els[0]+"//"+els[2]+"/"+"uc?export=view&id="+els[5];
+
+      }
+    }
+	
+	public Resource loadResource(String fileName) {
+        try {
+            Path filePath = fileStorageLocation.resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            if(resource.exists()) {
+                return resource;
+            } else {
+                throw new FileNotFoundException("File not found " + fileName);
+            }
+        } catch (MalformedURLException | FileNotFoundException ex) {
+            throw new RuntimeException("File not found " + fileName, ex);
+        }
+    }
 
 }

@@ -1,16 +1,25 @@
 package devops.tim9.postservice.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import devops.tim9.postservice.config.domain.FollowEvent;
 import devops.tim9.postservice.config.domain.AcceptAgentEvent;
 import devops.tim9.postservice.config.domain.DisableUserEvent;
 import devops.tim9.postservice.exception.ImageStorageException;
@@ -29,24 +38,26 @@ public class PostService {
 	private final PostRepository postRepository;
 	private final ImageStorageService imageStorageService;
 	private final CommentRepository commentRepository;
-	
+	private final ObjectMapper objectMapper;
+
 	@Autowired
 	AdminEventsProducer adminEventsProducer;
 
 	public PostService(UserRepository userRepository, PostRepository postRepository,
-			ImageStorageService imageStorageService, CommentRepository commentRepository) {
+			ImageStorageService imageStorageService, CommentRepository commentRepository, ObjectMapper objectMapper) {
 		this.userRepository = userRepository;
 		this.postRepository = postRepository;
 		this.imageStorageService = imageStorageService;
 		this.commentRepository = commentRepository;
+		this.objectMapper = objectMapper;
 	}
 
 	public Post createPost(String description, List<String> taggedUsernames, MultipartFile file)
 			throws Exception {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
-		Post post = postRepository.save(new Post(null, description, null, user, new ArrayList<>(), new ArrayList<>(),
-				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
+		Post post = postRepository.save(new Post(null, description, null, new Date(), user, new ArrayList<>(),
+				new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>()));
 		if (taggedUsernames.size() > 0) {
 			for (String username : taggedUsernames) {
 				User user2 = userRepository.findByUsername(username);
@@ -59,6 +70,10 @@ public class PostService {
 		String savedImagePath = imageStorageService.storeImage(file, user.getUsername());
 		post.setPicture(savedImagePath);
 		return postRepository.save(post);
+	}
+	
+	public Post getOne(Integer id) {
+		return postRepository.getOne(id);
 	}
 
 	public void likePost(Integer id) {
@@ -103,29 +118,46 @@ public class PostService {
 
 	}
 
-	public void commentPost(Integer id, String content, List<String> usernames) {
+	public void commentPost(Integer id, String content) {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		Optional<Post> optionalPost = postRepository.findById(id);
-		if (optionalPost.isPresent()) {
-			Post post = optionalPost.get();
-			Comment comment = commentRepository.save(new Comment(null, user, post, content, new ArrayList<>()));
-			for (String username : usernames) {
-				User user2 = userRepository.findByUsername(username);
-				if (user2 != null && user2.getCanBeTagged()) {
-					user2.getTaggedInComment().add(comment);
-					userRepository.save(user2);
-				}
-			}
-			user.getUsersComments().add(comment);
-			userRepository.save(user);
-			postRepository.save(post);
-		}
+//		if (optionalPost.isPresent()) {
+//			Post post = optionalPost.get();
+//			Comment comment = commentRepository.save(new Comment(null, user, post, content, new ArrayList<>()));
+//			for (String username : usernames) {
+//				User user2 = userRepository.findByUsername(username);
+//				if (user2 != null && user2.getCanBeTagged()) {
+//					user2.getTaggedInComment().add(comment);
+//					userRepository.save(user2);
+//				}
+//			}
+//			user.getUsersComments().add(comment);
+//			userRepository.save(user);
+//			postRepository.save(post);
+//		}
+		
+		Post post = postRepository.findById(id).get();
+		Comment comment = commentRepository.save(new Comment(null, user, post, content, new ArrayList<>()));
+		post.getPostComments().add(comment);
+		userRepository.save(user);
+		postRepository.save(post);
+		commentRepository.save(comment);
+		
 
 	}
 
 	public List<Post> viewUsersPosts(String username) {
 		User user = userRepository.findByUsername(username);
+		if (user != null) {
+			return postRepository.findByUser(user);
+		}
+		return new ArrayList<>();
+	}
+	
+	public List<Post> viewMyPosts() {
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		if (user != null) {
 			return postRepository.findByUser(user);
 		}
@@ -142,17 +174,21 @@ public class PostService {
 			postRepository.save(post);
 		}
 	}
-	
-	public List<Post> likedByUser(String username){
-		User user = userRepository.findByUsername(username);
+
+	public List<Post> likedByUser(){
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		Optional<Post> optionalPost = postRepository.findById(user.getId());
 		if (user != null) {
 			return user.getLikedPosts();
 		}
 		return new ArrayList<>();
 	}
 	
-	public List<Post> dislikedByUser(String username){
-		User user = userRepository.findByUsername(username);
+	public List<Post> dislikedByUser(){
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		Optional<Post> optionalPost = postRepository.findById(user.getId());
 		if (user != null) {
 			return user.getDislikedPosts();
 		}
@@ -161,10 +197,10 @@ public class PostService {
 	
 	public List<Post> searchByTag(String username){
 		User user = userRepository.findByUsername(username);
-		if (user != null) {
-			return postRepository.findByTagged(user.getId());
-		}
-		return new ArrayList<>();	
+		return user.getPosts();
+//		if (user != null) {
+//			return postRepository.findByTagged(user.getId());
+//		}
 	}
 	
 	public List<Post> getReportedPosts(){
@@ -205,8 +241,42 @@ public class PostService {
 		}
 	}
 	
-	
-	
-	
+
+	public void createFollowing(FollowEvent followEvent) {
+		User userFollowed = userRepository.findByUsername(followEvent.getUsernameFollowed());
+		User userFollowing = userRepository.findByUsername(followEvent.getUsernameFollowedBy());
+		userFollowed.getFollowers().add(userFollowing);
+		userRepository.save(userFollowed);
+
+	}
+
+	@KafkaListener(topics = { "follow-events" })
+	public void onMessage(ConsumerRecord<Integer, String> consumerRecord) {
+		String value = consumerRecord.value();
+		try {
+			FollowEvent followEvent = objectMapper.readValue(value, FollowEvent.class);
+			createFollowing(followEvent);
+		} catch (JsonMappingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	public List<Post> getFollowingPosts() {
+		User user = (User) userRepository
+				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
+		List<Post> followersPosts = new ArrayList<>();
+		for (User u : userRepository.getFollowing(user.getId())) {
+			followersPosts.addAll(postRepository.findByUser(u));
+		}
+		Comparator<Post> comparator = Comparator.comparing(Post::getCreatedAt);
+		Collections.sort(followersPosts, comparator.reversed());
+		return followersPosts;
+
+	}
 
 }

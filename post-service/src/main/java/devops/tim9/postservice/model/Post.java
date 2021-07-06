@@ -1,5 +1,6 @@
 package devops.tim9.postservice.model;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.CascadeType;
@@ -32,6 +33,8 @@ public class Post {
 	private String description;
 	
 	private String picture;
+	
+	private Date createdAt;
 
 	@ManyToOne
 	private User user;
