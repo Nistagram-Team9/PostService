@@ -32,7 +32,7 @@ public class PostController {
 	
 	
 	@PostMapping
-	public ResponseEntity<MessageDto> createPost(@RequestParam String description, @RequestParam List<String> tags, @RequestParam MultipartFile file) {
+	public ResponseEntity<MessageDto> createPost(@RequestParam String description, @RequestParam List<String> tags, @RequestParam MultipartFile file) throws Exception {
 		try {
 			postService.createPost(description, tags, file);
 		} catch (ImageStorageException e) {
