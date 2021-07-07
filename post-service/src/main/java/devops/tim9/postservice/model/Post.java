@@ -13,6 +13,9 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.AllArgsConstructor;
@@ -40,9 +43,11 @@ public class Post {
 	private User user;
 
 	@ManyToMany(mappedBy = "likedPosts", cascade=CascadeType.REMOVE)
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<User> likedBy;
 
 	@ManyToMany(mappedBy = "dislikedPosts", cascade=CascadeType.REMOVE)
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<User> dislikedBy;
 
 	@JsonIgnore
@@ -50,6 +55,7 @@ public class Post {
 	@JoinTable(name = "saved_post_user", 
 	  joinColumns = @JoinColumn(name = "post_id"), 
 	  inverseJoinColumns = @JoinColumn(name = "user_id"))
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<User> savedBy;
 	
 	@JsonIgnore
@@ -57,12 +63,15 @@ public class Post {
 	@JoinTable(name = "reported_post_user", 
 	  joinColumns = @JoinColumn(name = "post_id"), 
 	  inverseJoinColumns = @JoinColumn(name = "user_id"))
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<User> reportedBy;
 
 	@OneToMany(mappedBy="post",cascade=CascadeType.REMOVE)
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<Comment> postComments;
 
 	@ManyToMany(mappedBy="taggedInPost",cascade=CascadeType.REMOVE)
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<User> taggedUsers;
 
 }

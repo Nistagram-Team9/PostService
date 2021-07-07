@@ -6,22 +6,22 @@ on:
       - develop
 jobs:
 
-  #test:
-  #  name: Unit Test
-  #  runs-on: ubuntu-18.04
+  test:
+    name: Unit Test
+    runs-on: ubuntu-18.04
 
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #    - name: Set up JDK 1.8
-  #      uses: actions/setup-java@v1
-  #      with:
-  #        java-version: 1.8
-  #    - name: Maven Package
-  #      working-directory: post-service
-  #      run: mvn -B clean package -DskipTests
-  #    - name: Maven Verify
-  #      working-directory: post-service
-  #      run: mvn -B clean verify -Dspring.profiles.active=test
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 1.8
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Maven Package
+        working-directory: post-service
+        run: mvn -B clean package -DskipTests
+      - name: Maven Verify
+        working-directory: post-service
+        run: mvn -B clean verify -Dspring.profiles.active=test
 
   analyze_post_service:
     runs-on: ubuntu-latest
