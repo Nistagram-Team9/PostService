@@ -68,6 +68,7 @@ public class User implements UserDetails{
 	@JoinTable(name = "liked_user_post", 
 	  joinColumns = @JoinColumn(name = "user_id"), 
 	  inverseJoinColumns = @JoinColumn(name = "post_id"))
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<Post> likedPosts;
 	
 	@JsonIgnore
@@ -75,14 +76,17 @@ public class User implements UserDetails{
 	@JoinTable(name = "disliked_user_post", 
 	  joinColumns = @JoinColumn(name = "user_id"), 
 	  inverseJoinColumns = @JoinColumn(name = "post_id"))
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<Post> dislikedPosts;
 	
 	@JsonIgnore
 	@ManyToMany(mappedBy="savedBy")
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<Post> savedPosts;
 	
 	@JsonIgnore
 	@ManyToMany(mappedBy="reportedBy")
+	@LazyCollection(LazyCollectionOption.FALSE)
 	private List<Post> reportedPosts;
 	
 	@JsonIgnore
