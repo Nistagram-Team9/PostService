@@ -95,13 +95,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		User user = (User) authentication.getPrincipal();
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 		int expiresIn = tokenHelper.getExpiredIn();
-//		Role role = null;
-//		if (user.getAuthorities().get(0).getRole().equals(Role.ROLE_ADMIN)) {
-//			role = Role.ROLE_ADMIN;
-//		} else {
-//			role = Role.ROLE_USER;
-//		}
-		Role role = Role.ROLE_USER;
+		Role role = null;
+		if (user.getAuthorities().get(0).getRole().equals(Role.ROLE_ADMIN)) {
+			role = Role.ROLE_ADMIN;
+		} else {
+			role = Role.ROLE_USER;
+		}
+//		Role role = Role.ROLE_USER;
 		VerificationToken verificationToken = new VerificationToken();
 		String jwt = authenticationRequestToSend.getToken();
 		verificationToken.setToken(jwt);

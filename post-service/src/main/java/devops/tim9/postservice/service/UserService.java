@@ -43,7 +43,17 @@ public class UserService implements UserDetailsService {
 			UserEvent userEvent = objectMapper.readValue(value, UserEvent.class);
 			User user = userEvent.getUser();
 			if (userEvent.getAction().equalsIgnoreCase("registerUser") || userEvent.getAction().equalsIgnoreCase("registerAdmin") || userEvent.getAction().equalsIgnoreCase("update")) {
+				List<Authority> authorities = new ArrayList<>();
+				if (userEvent.getAction().equalsIgnoreCase("registerUser")) {
+					authorities.add(new Authority(Role.ROLE_USER));
+
+				} else {
+					authorities.add(new Authority(Role.ROLE_ADMIN));
+
+				}
+				user.setAuthorities(authorities);
 				this.create(user);
+
 			} else if (userEvent.getAction().equalsIgnoreCase("delete")) {
 				this.delete(user.getId());
 			} 
