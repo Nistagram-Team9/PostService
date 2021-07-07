@@ -1,9 +1,11 @@
 package devops.tim9.postservice.config;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.kafka.annotation.KafkaListener;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
@@ -28,6 +30,7 @@ import devops.tim9.postservice.security.UserTokenState;
 import devops.tim9.postservice.security.VerificationToken;
 import devops.tim9.postservice.service.UserService;
 import devops.tim9.postservice.service.VerificationTokenService;
+import devops.tim9.postservice.config.JwtAuthenticationRequest;
 import lombok.AllArgsConstructor;
 
 
@@ -44,6 +47,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 	private UserService userService;
 	private VerificationTokenService verificationTokenService;
 	private ObjectMapper objectMapper;
+	
+	@Bean
+	@Override
+	public AuthenticationManager authenticationManagerBean() throws Exception {
+		return super.authenticationManagerBean();
+	}
 
 
 	@Override
@@ -86,13 +95,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		User user = (User) authentication.getPrincipal();
 		SecurityContextHolder.getContext().setAuthentication(authentication);
 		int expiresIn = tokenHelper.getExpiredIn();
-//		Role role = null;
-//		if (user.getAuthorities().get(0).getRole().equals(Role.ROLE_ADMIN)) {
-//			role = Role.ROLE_ADMIN;
-//		} else {
-//			role = Role.ROLE_USER;
-//		}
-		Role role = Role.ROLE_USER;
+		Role role = null;
+		if (user.getAuthorities().get(0).getRole().equals(Role.ROLE_ADMIN)) {
+			role = Role.ROLE_ADMIN;
+		} else {
+			role = Role.ROLE_USER;
+		}
+//		Role role = Role.ROLE_USER;
 		VerificationToken verificationToken = new VerificationToken();
 		String jwt = authenticationRequestToSend.getToken();
 		verificationToken.setToken(jwt);
@@ -134,6 +143,31 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 		}	
 
 	}
+	
+	public UserTokenState loginTesting(JwtAuthenticationRequest authenticationRequest) throws Exception {
+		final Authentication authentication;
+		try {
+			authentication = authenticationManagerBean().authenticate(new UsernamePasswordAuthenticationToken(
+					authenticationRequest.getUsername(), authenticationRequest.getPassword()));
+		} catch (BadCredentialsException e) {
+			return null;
+		}
+		User user = (User) authentication.getPrincipal();
+		SecurityContextHolder.getContext().setAuthentication(authentication);
+		String jwt = tokenHelper.generateToken(user.getUsername());
+		int expiresIn = tokenHelper.getExpiredIn();
+		Role role = null;
+		if (user.getAuthorities().get(0).getRole().equals(Role.ROLE_ADMIN)) {
+			role = Role.ROLE_ADMIN;
+		} 
+
+		VerificationToken verificationToken = new VerificationToken();
+		verificationToken.setToken(jwt);
+		verificationToken.setUser(user);
+		verificationTokenService.saveToken(verificationToken);
+		return new UserTokenState(jwt, expiresIn, role);
+	}
+
 
 
 }

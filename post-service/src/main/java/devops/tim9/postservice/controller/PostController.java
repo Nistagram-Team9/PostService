@@ -40,9 +40,7 @@ public class PostController {
 	
 	
 	@PostMapping
-	public ResponseEntity<MessageDto> createPost(@RequestParam String description, @RequestParam List<String> tags, @RequestParam MultipartFile file) {
-		System.out.println("Creating post");
-		System.out.println(description);
+	public ResponseEntity<MessageDto> createPost(@RequestParam String description, @RequestParam List<String> tags, @RequestParam MultipartFile file) throws Exception {
 		try {
 			postService.createPost(description, tags, file);
 		} catch (ImageStorageException e) {

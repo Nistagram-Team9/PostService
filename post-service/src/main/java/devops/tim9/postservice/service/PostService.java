@@ -53,7 +53,7 @@ public class PostService {
 	}
 
 	public Post createPost(String description, List<String> taggedUsernames, MultipartFile file)
-			throws ImageStorageException {
+			throws Exception {
 		User user = (User) userRepository
 				.findByUsername(SecurityContextHolder.getContext().getAuthentication().getName());
 		Post post = postRepository.save(new Post(null, description, null, new Date(), user, new ArrayList<>(),
